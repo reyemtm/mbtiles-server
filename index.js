@@ -1,5 +1,5 @@
 const fastify = require('fastify')({ logger: false })
-const sqlite3 = require('sqlite3')
+const Database = require('better-sqlite3')
 const tiletype = require('@mapbox/tiletype')
 const path = require('path')
 const glob = require('glob')
@@ -14,6 +14,15 @@ fastify.register(require('fastify-caching'), {
 })
 fastify.register(require('fastify-cors'))
 
+// create DB connection
+function createDB(filePath) {
+  const db = new Database(filePath, {
+    readonly: true,
+    verbose: null
+  })
+  return db
+}
+
 // Tile
 fastify.get('/:database/:z/:x/:y', (request, reply) => {
   // make it compatible with the old API
@@ -23,61 +32,25 @@ fastify.get('/:database/:z/:x/:y', (request, reply) => {
       : request.params.database + '.mbtiles'
   const y = path.parse(request.params.y).name
 
-  const db = new sqlite3.cached.Database(
-    path.join(tilesDir, database),
-    sqlite3.OPEN_READONLY,
-    err => {
-      if (err) {
-        reply.code(404).send('Error opening database: ' + err + '\n')
-      }
-    }
-  )
-  db.get(
-    'SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
-    [
-      request.params.z,
-      request.params.x,
-      (1 << request.params.z) - 1 - y
-    ],
-    function(err, row) {
-      if (err) {
-        reply.code(500).send('Tile rendering error: ' + err + '\n')
-      }
-      else if (!row) {
-        reply.code(204).send()
-      }
-      else {
-        Object.entries(tiletype.headers(row.tile_data)).forEach(h =>
-          reply.header(h[0], h[1])
-        )
-        reply.send(row.tile_data)
-      }
-    }
-  )
+  const db = createDB(path.join(tilesDir, database), reply)
+  const row = db.prepare(`SELECT tile_data FROM tiles WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?`)
+                .get(request.params.z, request.params.x, (1 << request.params.z) - 1 - y)
+
+  if (!row) {
+    reply.code(204).send()
+  } else {
+    Object.entries(tiletype.headers(row.tile_data)).forEach(h =>
+      reply.header(h[0], h[1])
+    )
+    reply.send(row.tile_data)
+  }
 })
 
 // MBtiles meta route
 fastify.get('/:database/meta', (request, reply) => {
-  const db = new sqlite3.cached.Database(
-    path.join(tilesDir, request.params.database),
-    sqlite3.OPEN_READONLY,
-    err => {
-      if (err) {
-        reply.code(404).send('Error opening database: ' + err + '\n')
-      }
-    }
-  )
-  db.all(`SELECT name, value FROM metadata where name in ('name', 'attribution','bounds','center', 'description', 'maxzoom', 'minzoom', 'pixel_scale', 'format')`, function(err, rows) {
-    if (err) {
-      reply.code(500).send('Error fetching metadata: ' + err + '\n')
-    }
-    else if (!rows) {
-      reply.code(204).send('No metadata present')
-    }
-    else {
-      reply.send(rows)
-    }
-  })
+  const db = createDB(path.join(tilesDir, request.params.database), reply)
+  const rows = db.prepare(`SELECT name, value FROM metadata where name in ('name', 'attribution','bounds','center', 'description', 'maxzoom', 'minzoom', 'pixel_scale', 'format')`).all()
+  !rows ?  reply.code(204).send() : reply.send(rows)
 })
 
 // MBtiles list
