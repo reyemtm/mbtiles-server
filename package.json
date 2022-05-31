@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "@fastify/caching": "^7.0.0",
+    "@fastify/cors": "^7.0.0",
     "@mapbox/tiletype": "^0.3.1",
-    "better-sqlite3": "^7.4.3",
-    "fastify": "^3.20.1",
-    "fastify-caching": "^6.1.0",
-    "fastify-cors": "^6.0.2",
-    "glob": "^7.1.7"
+    "better-sqlite3": "^7.5.3",
+    "fastify": "^3.29.0",
+    "glob": "^8.0.3"
   },
   "scripts": {
     "start": "node index.js"

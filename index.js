@@ -8,11 +8,11 @@ const port = 3000 // port the server runs on
 const host = 'localhost' // default listen address
 
 // fastify extensions
-fastify.register(require('fastify-caching'), {
+fastify.register(require('@fastify/caching'), {
   privacy: 'private',
   expiresIn: 60 * 60 * 24 // 48 hours
 })
-fastify.register(require('fastify-cors'))
+fastify.register(require('@fastify/cors'))
 
 // create DB connection
 function createDB(filePath) {
