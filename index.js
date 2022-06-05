@@ -3,9 +3,9 @@ const Database = require('better-sqlite3')
 const tiletype = require('@mapbox/tiletype')
 const path = require('path')
 const glob = require('glob')
-const tilesDir = __dirname // directory to read mbtiles files
+const tilesDir = "./tilesets" // directory to read mbtiles files
 const port = 3000 // port the server runs on
-const host = 'localhost' // default listen address
+const host = '0.0.0.0' // default listen address
 
 // fastify extensions
 fastify.register(require('@fastify/caching'), {
@@ -62,4 +62,4 @@ fastify.get('/list', (request, reply) => {
 
 // Run the server!
 fastify.listen(port, host)
-console.log(`tile server listening on port ${port}`)
+console.log(`fastify mbtile server listening on ${port}`)
